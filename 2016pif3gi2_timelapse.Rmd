@@ -72,7 +72,7 @@ exp1.filename$frame<-1:nrow(exp1.filename)
 # reading file name used in exp2
 exp2.filename<-read.table("exp2.file.txt",nrow=533) # skip the last line "exp2.file.txt"
 #exp2.filename$frame<-1:nrow(exp2.filename) # is this true? no 
-exp2.filename$frame<- c(((533-308)+1):533, (309-308):(533-308))# is this true? OK. Probably I should fix it becasue this is dirty. (100316)
+exp2.filename$frame<- c(((533-309)+1):533, (310-309):(533-309))# is this true? OK. Probably I should fix it becasue this is dirty. (100316)
 
 # reading hypocotyl length data
 hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")

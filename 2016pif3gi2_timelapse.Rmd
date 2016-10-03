@@ -70,8 +70,9 @@ exp1.filename<-read.table("exp1.file.txt",skip=1)
 # add 336 to 1 (frmae number in exp1 avi )
 exp1.filename$frame<-1:nrow(exp1.filename)
 # reading file name used in exp2
-exp2.filename<-read.table("exp2.file.txt",skip=1)
-exp2.filename$frame<-1:nrow(exp2.filename)
+exp2.filename<-read.table("exp2.file.txt",nrow=533) # skip the last line "exp2.file.txt"
+#exp2.filename$frame<-1:nrow(exp2.filename) # is this true? no 
+exp2.filename$frame<- c(((533-308)+1):533, (309-308):(533-308))# is this true? OK. Probably I should fix it becasue this is dirty. (100316)
 
 # reading hypocotyl length data
 hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
@@ -80,10 +81,10 @@ hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
 hyp.data$frame<-as.integer(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\5",hyp.data$label)) 
 
 # obtaining file date/time (exp1)
-hyp.data[hyp.data$exp==1,"file"]<-vlookup(hyp.data[hyp.data$exp==1,"frame"],exp1.filename[,2:1],2)
+hyp.data[hyp.data$exp==1,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==1,"frame"],exp1.filename[,2:1],2))
+str(hyp.data)
 # obtaining file date/time (exp2)
-hyp.data[hyp.data$exp==2,"file"]<-vlookup(hyp.data[hyp.data$exp==2,"frame"],exp2.filename[,2:1],2)
-
+hyp.data[hyp.data$exp==2,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==2,"frame"],exp2.filename[,2:1],2))
 ## obtain file date/time stamp (exp1 and exp2)
 hyp.data$date<-vlookup(hyp.data$file,filetime[,c("V4","V1")],2)
 hyp.data$time<-vlookup(hyp.data$file,filetime[,c("V4","V2")],2)
@@ -99,10 +100,10 @@ exp2.start.date.time<-strptime("7/1/2016/7:00","%m/%d/%Y/%H:%M") # start date ti
 # cf. hyp.data$date.time - start.date.time gave me units="days"
 # for exp1
 hyp.data[hyp.data$exp==1,"after.stratification_hr"]<-
-  as.numeric(gsub(" hours","",difftime(hyp.data$date.time,exp1.start.date.time,units="hours"))) # see more in ?difftime
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==1,"date.time"],exp1.start.date.time,units="hours"))) # see more in ?difftime
 # for exp2
 hyp.data[hyp.data$exp==2,"after.stratification_hr"]<-
-  as.numeric(gsub(" hours","",difftime(hyp.data$date.time,exp2.start.date.time,units="hours"))) # see more in ?difftime
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==2,"date.time"],exp2.start.date.time,units="hours"))) # see more in ?difftime
 # 
 str(hyp.data)
 head(hyp.data)
@@ -118,7 +119,7 @@ summary(hyp.data)
 # plot data
 ```{r,fig.height=11}
 # plot (height version)
-p.height<-ggplot(hyp.data,aes(x=after.stratification_hr,y=pixel,color=as.factor(rep),shape=factor(exp))) + geom_point()+facet_grid(genotype~.)
+p.height<-ggplot(hyp.data,aes(x=after.stratification_hr,y=pixel,color=as.factor(rep),shape=factor(exp))) + geom_point()+facet_grid(genotype~exp)
 p.height
 # plot (growth rate version)
 #p.growthrate<-

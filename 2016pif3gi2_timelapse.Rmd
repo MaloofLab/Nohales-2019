@@ -77,7 +77,7 @@ exp2.filename$frame<-1:nrow(exp2.filename)
 hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
 # merge time stamp data and hyp.data
 ## extract avi movie frame name
-hyp.data$frame<-as.integer(sub("(2016pif3gi2exp1A_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\4",hyp.data$label))
+hyp.data$frame<-as.integer(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\5",hyp.data$label)) 
 
 # obtaining file date/time (exp1)
 hyp.data[hyp.data$exp==1,"file"]<-vlookup(hyp.data[hyp.data$exp==1,"frame"],exp1.filename[,2:1],2)

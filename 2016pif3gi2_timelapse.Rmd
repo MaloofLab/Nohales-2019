@@ -1,0 +1,105 @@
+---
+title: "2016 pif3gi2 timelapse"
+author: "Kazu Nozue"
+date: "August 25, 2016"
+output: html_document
+---
+# pif3 gi2 hypocotyl timelapse growth analyis
+## written by Kazunari Nozue (Maloof lab)
+## collaboration with Marian (Kay lab)
+### history
+
+### outline
+
+### prerequisite
+library(ggplot2);library(reshape2)
+# functions used in this script
+## vlookup
+```{r}
+#Vlookup in R (https://gist.github.com/jnmaloof/7367450)
+#Version 0.3 November 12, 2013
+#Return senesical results if return column is a factor
+#Version 0.2 November 11, 2013
+#Require first column of table to be numeric if range lookup is being done
+#Change defaults to larger=FALSE
+#Julin Maloof
+vlookup <- function(ref, #the value or values that you want to look for
+                    table, #the table where you want to look for it; will look in first column
+                    column, #the column that you want the return data to come from,
+                    range=FALSE, #if there is not an exact match, return the closest?
+                    larger=FALSE) #if doing a range lookup, should the smaller or larger key be used?)
+{
+  if(!is.numeric(column) & !column %in% colnames(table)) {
+    stop(paste("can't find column",column,"in table"))
+  }
+  if(range) {
+    if(!is.numeric(table[,1])) {
+      stop(paste("The first column of table must be numeric when using range lookup"))
+    }
+    table <- table[order(table[,1]),] 
+    index <- findInterval(ref,table[,1])
+    if(larger) {
+      index <- ifelse(ref %in% table[,1],index,index+1)
+    }
+    output <- table[index,column]
+    output[!index <= dim(table)[1]] <- NA
+    
+  } else {
+    output <- table[match(ref,table[,1]),column]
+    output[!ref %in% table[,1]] <- NA #not needed?
+  }
+  dim(output) <- dim(ref)
+  output
+}
+```
+
+```{r}
+# reading file time stamp
+## This file was created in MSDOS (Celia cam computer) by "dir" command
+filetime<-read.table("/Volumes/Data9_images/2016pif3gi2filetime.txt",skip=7,nrows=869)
+head(filetime)
+tail(filetime)
+# reading file name used in exp1
+exp1.filename<-read.table("exp1.file.txt",skip=1)
+# add 336 to 1 (frmae number in exp1 avi )
+exp1.filename$frame<-1:336
+
+# reading hypocotyl length data
+setwd("/Volumes/Data6/data_JM4/2016pif3gi2_timelapse")
+hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
+# merge time stamp data and hyp.data
+## extract avi movie frame name
+hyp.data$frame<-as.integer(sub("(2016pif3gi2exp1A_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\4",hyp.data$label))
+hyp.data$file<-vlookup(hyp.data$frame,exp1.filename[,2:1],2)
+## obtain file date/time stamp
+hyp.data$date<-vlookup(hyp.data$file,filetime[,c("V4","V1")],2)
+hyp.data$time<-vlookup(hyp.data$file,filetime[,c("V4","V2")],2)
+## converted to "POSIXlt" (see ?strptime)
+hyp.data$date.time<-strptime(paste(hyp.data$date,hyp.data$time,sep="/"),"%m/%d/%Y/%H:%M")
+
+## June 27 is day3 after stratification (start day for exp1 is 
+exp1.start.date.time<-strptime("6/24/2016/7:00","%m/%d/%Y/%H:%M") # start date time for exp1
+exp2.start.date.time<-strptime("7/1/2016/7:00","%m/%d/%Y/%H:%M") # start date time for exp2
+
+## day-night cycle (7:00 - 15:00 is day)
+# calculate hours after stratification 
+# cf. hyp.data$date.time - start.date.time gave me units="days"
+# for exp1
+hyp.data[hyp.data$exp==1,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data$date.time,exp1.start.date.time,units="hours"))) # see more in ?difftime
+# for exp2
+hyp.data[hyp.data$exp==2,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data$date.time,exp2.start.date.time,units="hours"))) # see more in ?difftime
+# 
+str(hyp.data)
+#
+# calculate growth rate. how to ? exp1 and exp2 has different. And then smoothing curve as Julind did in Holtan (2011) Plant Physiol?
+
+
+
+# plot (length version)
+ggplot(hyp.data,aes(x=after.stratification_hr,y=pixel,color=as.factor(rep))) + geom_point()+facet_grid(genotype~.)
+# plot (growth rate version)
+
+```
+

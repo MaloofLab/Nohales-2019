@@ -108,6 +108,9 @@ hyp.data[hyp.data$exp==2,"after.stratification_hr"]<-
 str(hyp.data)
 head(hyp.data)
 summary(hyp.data)
+# need to 
+
+
 ```
 
 # calculate growth rate. how to ? exp1 and exp2 has different. And then smoothing curve as Julind did in Holtan (2011) Plant Physiol?

@@ -65,6 +65,7 @@ setwd(homedir)
 filetime<-read.table("2016pif3gi2filetime.txt",skip=7,nrows=869)
 head(filetime)
 tail(filetime)
+
 # reading file name used in exp1
 exp1.filename<-read.table("exp1.file.txt",skip=1)
 # add 336 to 1 (frmae number in exp1 avi )
@@ -76,6 +77,14 @@ exp2.filename$frame<- c(((533-309)+1):533, (310-309):(533-309))# is this true? O
 
 # reading hypocotyl length data
 hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
+# need to clean up data (no duplicate)
+hyp.data$id<-paste(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\1\\2\\3\\4\\5",hyp.data$label),hyp.data$rep,sep="_")
+hyp.data[duplicated(hyp.data$id),] # OK
+# change pixel into mm (under construction)
+scale<- 95/1220.3213 # 95 mm is 1220.3213 pixel
+hyp.data$mm<-hyp.data$pixel * scale
+
+
 # merge time stamp data and hyp.data
 ## extract avi movie frame name
 hyp.data$frame<-as.integer(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\5",hyp.data$label)) 
@@ -108,23 +117,63 @@ hyp.data[hyp.data$exp==2,"after.stratification_hr"]<-
 str(hyp.data)
 head(hyp.data)
 summary(hyp.data)
-# need to 
-
 
 ```
 
 # calculate growth rate. how to ? exp1 and exp2 has different. And then smoothing curve as Julind did in Holtan (2011) Plant Physiol?
 ```{r}
+# from Julin's scripts "TLsmoothMND MAR.R"
+calcRate <- function(x) { #no running average
+  x <- x[order(x$after.stratification_hr),] 
+	x$rate <- NA
+	for (i in 2:nrow(x)) {
+		x$rate[i] <- (x$y[i]-x$y[i-1]) / (x$after.stratification_hr[i] -x$after.stratification_hr[i-1])
+		}
+		x
+		} 
 # under construction
+#names(hyp.data)<-sub("after.stratification_hr","time",names(hyp.data))
+names(hyp.data)<-sub("mm","y",names(hyp.data))
+hyp.data$sample<-with(hyp.data,paste(exp,plate,genotype,rep,sep="_")) 
+rate.list <- by(hyp.data,hyp.data$sample,calcRate) 
+tl.rates <- rate.list[[1]]              #need to recompile the list of dataframes into one dataframe.  this will hold it
+
+for (i in 2:length(rate.list)) tl.rates <- rbind(tl.rates,rate.list[[i]]) #merge into one frame
+
+# tl.rates <- tl.rates[complete.cases(tl.rates[,-7]),]  #remove rows with no data.(from J). error (Kazu)
+
+
 
 ```
 
 # plot data
-```{r,fig.height=11}
+```{r,fig.height=11,fig.width=20}
 # plot (height version)
-p.height<-ggplot(hyp.data,aes(x=after.stratification_hr,y=pixel,color=as.factor(rep),shape=factor(exp))) + geom_point()+facet_grid(genotype~exp)
+p.height<-ggplot(hyp.data,aes(x=after.stratification_hr,y=y,color=as.factor(rep),shape=factor(exp))) + geom_point()+facet_grid(genotype~exp)
 p.height
 # plot (growth rate version)
-#p.growthrate<-
+night <- seq(8,max(tl.rates$after.stratification_hr),24)
+day <- seq(24,max(tl.rates$after.stratification_hr),24)
+if (length(night)>length(day)) day <- c(day,max(tl.rates$after.stratification_hr))
+bottom <- rep(-0.05,length(night))
+top <- rep(0.11,length(night)) # for mm
+#top <- rep(1,length(night)) # for pixel
+
+
+#data frame to hold coordinates for nighttime rectangles
+rectangles <- data.frame(night,day,top,bottom,rate=0,after.stratification_hr=0)
+rm(night,day,top,bottom)
+
+p.growthrate<- ggplot(data=tl.rates,aes(y=rate,x=after.stratification_hr))  + facet_wrap(~genotype,ncol=1) + theme_classic()
+p.growthrate <- p.growthrate + geom_rect(data=rectangles,mapping=aes(xmin=night,xmax=day,ymin=bottom,ymax=top),fill="grey80")
+#p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200)
+p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200) # needs to play with span and n
+p.growthrate <- p.growthrate + scale_x_continuous(limits=c(24*5,24*12))
+
+#p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate
+
+
+
 ```
 

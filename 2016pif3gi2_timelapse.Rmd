@@ -172,6 +172,7 @@ p.growthrate <- p.growthrate + scale_x_continuous(limits=c(24*5,24*12))
 
 #p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
 p.growthrate
+ggsave(p.growthrate,file="Marian_pif3gi3_timelapse.png",dpi=300,width=11,height=8) # needs to clean graph
 
 
 

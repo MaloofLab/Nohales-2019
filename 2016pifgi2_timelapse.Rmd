@@ -56,7 +56,7 @@ vlookup <- function(ref, #the value or values that you want to look for
 ```{r}
 # setup working directory
 if(Sys.info()["user"]=="nozue") {
-homedir<-"/Volumes/Data6/data_JM4/2016pif3gi2_timelapse"
+homedir<-"/Volumes/Data6/data_JM4/2016pifgi2_timelapse"
 } # customize homedir
 setwd(homedir)
 # 

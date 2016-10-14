@@ -198,7 +198,7 @@ p.growthrate <- p.growthrate +
   geom_smooth(mapping=aes(color=genotype),
               stat="smooth",
               fill="grey20",
-              method="loess",span=.07,n=200, se = FALSE) # need to play with span and n
+              method="loess",span=.1,n=200, se = FALSE) # need to play with span and n
 p.growthrate <- p.growthrate + theme(
   axis.text.x=element_text(size=18),
   #axis.ticks = element_blank(),

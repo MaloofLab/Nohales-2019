@@ -56,7 +56,10 @@ vlookup <- function(ref, #the value or values that you want to look for
 ```{r}
 # setup working directory
 if(Sys.info()["user"]=="nozue") {
-homedir<-"/Volumes/Data6/data_JM4/2016pifgi2_timelapse"
+  homedir<-"/Volumes/Data6/data_JM4/2016pifgi2_timelapse"
+} # customize homedir
+if(Sys.info()["user"]=="jmaloof") {
+  homedir<-"~/git/Marian_pif3gi2_timelapse/"
 } # customize homedir
 setwd(homedir)
 # 
@@ -120,17 +123,17 @@ summary(hyp.data)
 
 ```
 
-# calculate growth rate. how to ? exp1 and exp2 has different. And then smoothing curve as Julind did in Holtan (2011) Plant Physiol?
+# calculate growth rate. how to ? exp1 and exp2 has different. And then smoothing curve as Julin did in Holtan (2011) Plant Physiol?
 ```{r}
 # from Julin's scripts "TLsmoothMND MAR.R"
 calcRate <- function(x) { #no running average
   x <- x[order(x$after.stratification_hr),] 
-	x$rate <- NA
-	for (i in 2:nrow(x)) {
-		x$rate[i] <- (x$y[i]-x$y[i-1]) / (x$after.stratification_hr[i] -x$after.stratification_hr[i-1])
-		}
-		x
-		} 
+  x$rate <- NA
+  for (i in 2:nrow(x)) {
+    x$rate[i] <- (x$y[i]-x$y[i-1]) / (x$after.stratification_hr[i] -x$after.stratification_hr[i-1])
+  }
+  x
+} 
 # under construction
 #names(hyp.data)<-sub("after.stratification_hr","time",names(hyp.data))
 names(hyp.data)<-sub("mm","y",names(hyp.data))
@@ -182,9 +185,27 @@ p.growthrate <- p.growthrate + theme(
 p.growthrate
 ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v2.png",dpi=300,width=11,height=8) # needs to clean up graph
 # Time (h): time after stratification (hr) (cf. Nozue (2007) use "zero indicates dawn of the fourth day")
-# 
-
-
-
+#
 ```
 
+# plot data on single facet
+```{r,fig.height=11,fig.width=20}
+
+p.growthrate<- ggplot(data=tl.rates3[grepl("gi2",tl.rates3$genotype),],aes(y=rate,x=after.stratification_hr)  )
+p.growthrate <- p.growthrate +
+  geom_rect(data=rectangles,mapping=aes(xmin=night,xmax=day,ymin=bottom,ymax=top),fill="grey80")
+p.growthrate <- p.growthrate +
+  geom_smooth(mapping=aes(color=genotype),
+              stat="smooth",
+              fill="grey20",
+              method="loess",span=.07,n=200, se = FALSE) # need to play with span and n
+p.growthrate <- p.growthrate + theme(
+  axis.text.x=element_text(size=18),
+  #axis.ticks = element_blank(),
+  panel.background = element_rect(fill = "white")) + 
+  labs(x="Time (h)",y="growth rate (mm/hr)")
+p.growthrate <- p.growthrate + xlim(72,max(tl.rates3$after.stratification_hr))
+#p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate
+ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v3.png",dpi=300,width=11,height=8) 
+```

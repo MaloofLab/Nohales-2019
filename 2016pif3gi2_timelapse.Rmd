@@ -6,7 +6,7 @@ output: html_document
 ---
 # pif3 gi2 hypocotyl timelapse growth analyis
 ## written by Kazunari Nozue (Maloof lab)
-## collaboration with Marian (Kay lab)
+## collaboration with Maria (Kay lab)
 ### history
 * for exp1 and exp2 (different start day and timing of image capture) (100316)
 ### outline
@@ -157,39 +157,49 @@ sample.numbers
 ```
 
 
+- Ideally, names of the different lines should be changed to be consistent with the ones use across the manuscript (col0, gi-2, pif3-1, gi-2;pif3-1).
+-  Axis text fonts should be increased to be legible.
+- Ideally (but only if possible), I’d like the colors to also match the ones used across the ms (col0 black, gi-2 orange, pif3-1 yellow, gi-2;pif3-1 green).
+
 # plot data
-```{r,fig.height=11,fig.width=20}
+
+## height
+
+```{r}
 # plot (height version)
 p.height<-ggplot(hyp.data,aes(x=after.stratification_hr,y=y,color=as.factor(rep),shape=factor(exp))) + geom_point()+facet_grid(genotype~exp)
 p.height
-# plot (growth rate version)
+
+```
+
+
+## rates
+```{r,fig.height=3,fig.width=4}
+
+labels <- c("Col"="col0", "gi2"="gi-2", "pif3"="pif3-1", "pif3 gi2" = "gi2;pif3-1")
+colors <- c("Col"="black", "gi2"="orange", "pif3"="yellow", "pif3 gi2" = "green")
+
+
 night <- seq(8,max(tl.rates$after.stratification_hr),24)
 day <- seq(24,max(tl.rates$after.stratification_hr),24)
 if (length(night)>length(day)) day <- c(day,max(tl.rates$after.stratification_hr))
 bottom <- rep(-0.02,length(night))
 top <- rep(0.11,length(night)) # for mm
-#top <- rep(1,length(night)) # for pixel
 
 #data frame to hold coordinates for nighttime rectangles
 rectangles <- data.frame(night,day,top,bottom,rate=0,after.stratification_hr=0)
 rm(night,day,top,bottom)
-# remove data not this time range, which did not solve an error in geom_smooth()
-# tl.rates4<-tl.rates3[tl.rates3$after.stratification_hr>24*5|tl.rates3$after.stratification_hr<24*12,]
-#
-#p.growthrate<- ggplot(data=tl.rates,aes(y=rate,x=after.stratification_hr))  + facet_wrap(~genotype,ncol=1) + theme_classic()
-p.growthrate<- ggplot(data=tl.rates3,aes(y=rate,x=after.stratification_hr))  + facet_grid(genotype~.)
+
+p.growthrate<- ggplot(data=tl.rates3,aes(y=rate,x=after.stratification_hr))  
+p.growthrate <- p.growthrate + facet_grid(genotype~., labeller = labeller(genotype=labels))
 p.growthrate <- p.growthrate + geom_rect(data=rectangles,mapping=aes(xmin=night,xmax=day,ymin=bottom,ymax=top),fill="grey80")
-#p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200)
-p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200) # needs to play with span and n
-#p.growthrate <- p.growthrate + scale_x_continuous(limits=c(24*5,24*12))
-p.growthrate <- p.growthrate + theme(
-  axis.text.x=element_text(size=18),
-  #axis.ticks = element_blank(),
-  panel.background = element_rect(fill = "white")) + 
+p.growthrate <- p.growthrate + geom_smooth(aes(color=genotype),stat="smooth",fill="grey20",method="loess",span=.1,n=200) # needs to play with span and n
+p.growthrate <- p.growthrate + theme(panel.background = element_rect(fill = "white")) + 
   labs(x="Time (h)",y="growth rate (mm/hr)")
-#p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
-p.growthrate
-ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v2.png",dpi=300,width=11,height=8) # needs to clean up graph
+p.growthrate <- p.growthrate + coord_cartesian(xlim=100:max(tl.rates3$after.stratification_hr)) # + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate + scale_color_manual(values = colors, guide=FALSE)
+
+ggsave(p.growthrate,file="Maria_pif3gi2_timelapse_v2.png",width=4,height=3) 
 # Time (h): time after stratification (hr) (cf. Nozue (2007) use "zero indicates dawn of the fourth day")
 #
 ```
@@ -213,5 +223,5 @@ p.growthrate <- p.growthrate + theme(
 p.growthrate <- p.growthrate + xlim(72,max(tl.rates3$after.stratification_hr))
 #p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
 p.growthrate
-ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v3.png",dpi=300,width=11,height=8) 
+ggsave(p.growthrate,file="Maria_pif3gi3_timelapse_v3.png",dpi=300,width=11,height=8) 
 ```

@@ -1,14 +1,15 @@
 ---
-title: "2016 pif3gi2 timelapse"
+title: "2016-2017 pifgi2 timelapse"
 author: "Kazu Nozue"
-date: "October_1, 2016"
+date: "Feb_9,2017"
 output: html_document
 ---
 # pif3 gi2 hypocotyl timelapse growth analyis
+# gi2 pif4 pif5 hyp (second experiments; exp4, 5, 7)
 ## written by Kazunari Nozue (Maloof lab)
 ## collaboration with Marian (Kay lab)
 ### history
-* for exp1 and exp2 (different start day and timing of image capture) (100316)
+* for exp4, exp5, and exp6 (pif4/5 vs gi2) (Dec 2016;Jan 12, 2017
 ### outline
 
 ### prerequisite
@@ -56,30 +57,39 @@ vlookup <- function(ref, #the value or values that you want to look for
 ```{r}
 # setup working directory
 if(Sys.info()["user"]=="nozue") {
-homedir<-"/Volumes/Data6/data_JM4/2016pif3gi2_timelapse"
+homedir<-"/Volumes/data_work/Data6/data_JM4/2016pif3gi2_timelapse"
 } # customize homedir
 setwd(homedir)
 # 
 # reading file time stamp
 ## This file was created in MSDOS (Celia cam computer) by "dir" command
-filetime<-read.table("2016pif3gi2filetime.txt",skip=7,nrows=869)
+filetime<-read.table("2016pifgi2filetime2s.txt",skip=8)#,nrows=869)
 head(filetime)
 tail(filetime)
 
 # reading file name used in exp1
-exp1.filename<-read.table("exp1.file.txt",skip=1)
+exp4.filename<-read.table("exp4.file.txt",skip=1) # 540 files
 # add 336 to 1 (frmae number in exp1 avi )
-exp1.filename$frame<-1:nrow(exp1.filename)
-# reading file name used in exp2
-exp2.filename<-read.table("exp2.file.txt",nrow=533) # skip the last line "exp2.file.txt"
+exp4.filename$frame<-1:nrow(exp4.filename)
+# reading file name used in exp5
+exp5.filename<-read.table("exp5.file.txt",nrow=659) # skip the last line "exp5.file.txt"
 #exp2.filename$frame<-1:nrow(exp2.filename) # is this true? no 
-exp2.filename$frame<- c(((533-309)+1):533, (310-309):(533-309))# is this true? OK. Probably I should fix it becasue this is dirty. (100316)
+exp5.filename.number<-gsub("(exp4000)([[:digit:]]+)(.jpg)","\\2",exp5.filename[,1])
+exp5.filename$frame<- as.integer(exp5.filename.number) - min(as.integer(exp5.filename.number))+1 # more general formula
+# reading file name used in exp6
+exp6.filename<-read.table("exp6.file.txt",nrow=1061) # skip the last line "exp6.file.txt"
+exp6.filename.number<-gsub("(exp5000)([[:digit:]]+)(.jpg)","\\2",exp6.filename[,1])
+exp6.filename$frame<- as.integer(exp6.filename.number) - min(as.integer(exp6.filename.number))+1 # 
 
 # reading hypocotyl length data
-hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
+hyp.data<-read.csv("Marian_gi2pif3_hyp_data - 2nd sets.csv")
 # need to clean up data (no duplicate)
-hyp.data$id<-paste(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\1\\2\\3\\4\\5",hyp.data$label),hyp.data$rep,sep="_")
-hyp.data[duplicated(hyp.data$id),] # OK
+hyp.data$id<-paste(sub("(2016pifgi2exp)(1a_|1b_|2a_|2b_|3a_|3b_)(Col|gi2|pif4pif5|gi2pif4|gi2pif5|gi2pif4pif5)(.avi:)([[:digit:]]+)([[:print:]]+)","\\1\\2\\3\\4\\5",hyp.data$label),hyp.data$rep,sep="_")
+hyp.data[duplicated(hyp.data$id),] # should be none. If duplicated, remove duplicated data from Google Sheet
+
+####### data cleaning on going #########
+ftable(hyp.data[,c("exp","plate","genotype","rep")],col.vars=c("plate","rep"),row.vars=c("genotype","exp"))
+
 # change pixel into mm
 scale<- 95/1220.3213 # 95 mm is 1220.3213 pixel
 hyp.data$mm<-hyp.data$pixel * scale
@@ -87,33 +97,41 @@ hyp.data$mm<-hyp.data$pixel * scale
 
 # merge time stamp data and hyp.data
 ## extract avi movie frame name
-hyp.data$frame<-as.integer(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\5",hyp.data$label)) 
+hyp.data$frame<-as.integer(sub("(2016pifgi2exp)(1a_|1b_|2a_|2b_|3a_|3b_)(Col|gi2|pif4pif5|gi2pif4|gi2pif5|gi2pif4pif5)(.avi:)([[:digit:]]+)([[:print:]]+)","\\5",hyp.data$label)) 
 
-# obtaining file date/time (exp1)
-hyp.data[hyp.data$exp==1,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==1,"frame"],exp1.filename[,2:1],2))
+# obtaining file date/time (exp4)
+hyp.data[hyp.data$exp==4,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==4,"frame"],exp4.filename[,2:1],2))
 str(hyp.data)
-# obtaining file date/time (exp2)
-hyp.data[hyp.data$exp==2,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==2,"frame"],exp2.filename[,2:1],2))
-## obtain file date/time stamp (exp1 and exp2)
+# obtaining file date/time (exp5)
+hyp.data[hyp.data$exp==5,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==5,"frame"],exp5.filename[,2:1],2))
+# obtaining file date/time (exp6)
+hyp.data[hyp.data$exp==6,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==6,"frame"],exp6.filename[,2:1],2))
+## obtain file date/time stamp (exp4,exp5 and exp6)
 hyp.data$date<-vlookup(hyp.data$file,filetime[,c("V4","V1")],2)
 hyp.data$time<-vlookup(hyp.data$file,filetime[,c("V4","V2")],2)
 ## converted to "POSIXlt" (see ?strptime)
 hyp.data$date.time<-strptime(paste(hyp.data$date,hyp.data$time,sep="/"),"%m/%d/%Y/%H:%M")
+#
+summary(hyp.data)
+## day1 
+exp4.start.date.time<-strptime("11/7/2016/8:00","%m/%d/%Y/%H:%M") # start date time for exp4
+exp5.start.date.time<-strptime("11/17/2016/8:00","%m/%d/%Y/%H:%M") # start date time for exp5
+exp6.start.date.time<-strptime("12/14/2016/8:00","%m/%d/%Y/%H:%M") # start date time for exp6
 
-## June 27 is day3 after stratification (start day for exp1 is 
-exp1.start.date.time<-strptime("6/24/2016/7:00","%m/%d/%Y/%H:%M") # start date time for exp1
-exp2.start.date.time<-strptime("7/1/2016/7:00","%m/%d/%Y/%H:%M") # start date time for exp2
-
-## day-night cycle (7:00 - 15:00 is day)
+## day-night cycle (7:00 - 15:00 is day). No. 8:00 - 16:00 was day (after correction of daylight saving on Nov 1)
 # calculate hours after stratification 
 # cf. hyp.data$date.time - start.date.time gave me units="days"
-# for exp1
-hyp.data[hyp.data$exp==1,"after.stratification_hr"]<-
-  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==1,"date.time"],exp1.start.date.time,units="hours"))) # see more in ?difftime
-# for exp2
-hyp.data[hyp.data$exp==2,"after.stratification_hr"]<-
-  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==2,"date.time"],exp2.start.date.time,units="hours"))) # see more in ?difftime
+# for exp4
+hyp.data[hyp.data$exp==4,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==4,"date.time"],exp4.start.date.time,units="hours"))) # see more in ?difftime
+# for exp5
+hyp.data[hyp.data$exp==5,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==5,"date.time"],exp5.start.date.time,units="hours"))) # see more in ?difftime
 # 
+# for exp6
+hyp.data[hyp.data$exp==6,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==6,"date.time"],exp6.start.date.time,units="hours"))) # see more in ?difftime
+
 str(hyp.data)
 head(hyp.data)
 summary(hyp.data)
@@ -140,12 +158,13 @@ tl.rates <- rate.list[[1]]              #need to recompile the list of dataframe
 
 for (i in 2:length(rate.list)) tl.rates <- rbind(tl.rates,rate.list[[i]]) #merge into one frame
 
-# 
-tl.rates2 <- tl.rates[complete.cases(tl.rates),]  #remove rows with no data.(from J). Error in complete.cases(tl.rates) : not all arguments have the same length (Kazu)
+# tl.rates2 <- tl.rates[complete.cases(tl.rates),]  #remove rows with no data.(from J). Error in complete.cases(tl.rates) : not all arguments have the same length (Kazu)
 tl.rates3<-tl.rates[!is.na(tl.rates$rate),]
 
+#
+tl.rates3.Col<-tl.rates3[tl.rates3$genotype=="Col",]
 
-
+#tl.rates3.Col[tl.rates3.Col$rate< -2,c("exp","plate","genotype","rep",)] # why???
 ```
 
 # plot data
@@ -170,17 +189,17 @@ rm(night,day,top,bottom)
 #p.growthrate<- ggplot(data=tl.rates,aes(y=rate,x=after.stratification_hr))  + facet_wrap(~genotype,ncol=1) + theme_classic()
 p.growthrate<- ggplot(data=tl.rates3,aes(y=rate,x=after.stratification_hr))  + facet_grid(genotype~.)
 p.growthrate <- p.growthrate + geom_rect(data=rectangles,mapping=aes(xmin=night,xmax=day,ymin=bottom,ymax=top),fill="grey80")
-#p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200)
-p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200) # needs to play with span and n
+#p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200) # original
+p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.05,n=200) # needs to play with span and n
 #p.growthrate <- p.growthrate + scale_x_continuous(limits=c(24*5,24*12))
 p.growthrate <- p.growthrate + theme(
   axis.text.x=element_text(size=18),
   #axis.ticks = element_blank(),
   panel.background = element_rect(fill = "white")) + 
   labs(x="Time (h)",y="growth rate (mm/hr)")
-#p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate <- p.growthrate + coord_cartesian(xlim=c(24*1.5,24*9),ylim=c(-0.001,0.15))
 p.growthrate
-ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v2.png",dpi=300,width=11,height=8) # needs to clean up graph
+ggsave(p.growthrate,file="Marian_pifgi3_timelapse_exp2_v1.png",dpi=300,width=11,height=8) # needs to clean up graph
 # Time (h): time after stratification (hr) (cf. Nozue (2007) use "zero indicates dawn of the fourth day")
 # 
 

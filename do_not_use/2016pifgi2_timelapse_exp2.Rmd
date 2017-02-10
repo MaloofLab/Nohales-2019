@@ -1,0 +1,211 @@
+---
+title: "2016 pif3gi2 timelapse"
+author: "Kazu Nozue"
+date: "October_1, 2016"
+output: html_document
+---
+# pif3 gi2 hypocotyl timelapse growth analyis
+## written by Kazunari Nozue (Maloof lab)
+## collaboration with Marian (Kay lab)
+### history
+* for exp1 and exp2 (different start day and timing of image capture) (100316)
+### outline
+
+### prerequisite
+```{r}
+library(ggplot2)
+# functions used in this script
+## vlookup
+#Vlookup in R (https://gist.github.com/jnmaloof/7367450)
+#Version 0.3 November 12, 2013
+#Return senesical results if return column is a factor
+#Version 0.2 November 11, 2013
+#Require first column of table to be numeric if range lookup is being done
+#Change defaults to larger=FALSE
+#Julin Maloof
+vlookup <- function(ref, #the value or values that you want to look for
+                    table, #the table where you want to look for it; will look in first column
+                    column, #the column that you want the return data to come from,
+                    range=FALSE, #if there is not an exact match, return the closest?
+                    larger=FALSE) #if doing a range lookup, should the smaller or larger key be used?)
+{
+  if(!is.numeric(column) & !column %in% colnames(table)) {
+    stop(paste("can't find column",column,"in table"))
+  }
+  if(range) {
+    if(!is.numeric(table[,1])) {
+      stop(paste("The first column of table must be numeric when using range lookup"))
+    }
+    table <- table[order(table[,1]),] 
+    index <- findInterval(ref,table[,1])
+    if(larger) {
+      index <- ifelse(ref %in% table[,1],index,index+1)
+    }
+    output <- table[index,column]
+    output[!index <= dim(table)[1]] <- NA
+    
+  } else {
+    output <- table[match(ref,table[,1]),column]
+    output[!ref %in% table[,1]] <- NA #not needed?
+  }
+  dim(output) <- dim(ref)
+  output
+}
+```
+# data formating
+```{r}
+# setup working directory
+if(Sys.info()["user"]=="nozue") {
+  homedir<-"/Volumes/Data6/data_JM4/2016pifgi2_timelapse"
+} # customize homedir
+if(Sys.info()["user"]=="jmaloof") {
+  homedir<-"~/git/Marian_pif3gi2_timelapse/"
+} # customize homedir
+setwd(homedir)
+# 
+# reading file time stamp
+## This file was created in MSDOS (Celia cam computer) by "dir" command
+filetime<-read.table("2016pif3gi2filetime.txt",skip=7,nrows=869)
+head(filetime)
+tail(filetime)
+
+# reading file name used in exp1
+exp1.filename<-read.table("exp1.file.txt",skip=1)
+# add 336 to 1 (frmae number in exp1 avi )
+exp1.filename$frame<-1:nrow(exp1.filename)
+# reading file name used in exp2
+exp2.filename<-read.table("exp2.file.txt",nrow=533) # skip the last line "exp2.file.txt"
+#exp2.filename$frame<-1:nrow(exp2.filename) # is this true? no 
+exp2.filename$frame<- c(((533-309)+1):533, (310-309):(533-309))# is this true? OK. Probably I should fix it becasue this is dirty. (100316)
+
+# reading hypocotyl length data
+hyp.data<-read.csv("Marian_gi2pif3_hyp_data.csv")
+# need to clean up data (no duplicate)
+hyp.data$id<-paste(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\1\\2\\3\\4\\5",hyp.data$label),hyp.data$rep,sep="_")
+hyp.data[duplicated(hyp.data$id),] # OK
+# change pixel into mm
+scale<- 95/1220.3213 # 95 mm is 1220.3213 pixel
+hyp.data$mm<-hyp.data$pixel * scale
+
+
+# merge time stamp data and hyp.data
+## extract avi movie frame name
+hyp.data$frame<-as.integer(sub("(2016pif3gi2exp)(1A_|1B_|2A_|2B_)(pif3gi2|pif3|gi2|Col)(.avi:)([[:digit:]]+)([[:print:]]+)","\\5",hyp.data$label)) 
+
+# obtaining file date/time (exp1)
+hyp.data[hyp.data$exp==1,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==1,"frame"],exp1.filename[,2:1],2))
+str(hyp.data)
+# obtaining file date/time (exp2)
+hyp.data[hyp.data$exp==2,"file"]<-as.character(vlookup(hyp.data[hyp.data$exp==2,"frame"],exp2.filename[,2:1],2))
+## obtain file date/time stamp (exp1 and exp2)
+hyp.data$date<-vlookup(hyp.data$file,filetime[,c("V4","V1")],2)
+hyp.data$time<-vlookup(hyp.data$file,filetime[,c("V4","V2")],2)
+## converted to "POSIXlt" (see ?strptime)
+hyp.data$date.time<-strptime(paste(hyp.data$date,hyp.data$time,sep="/"),"%m/%d/%Y/%H:%M")
+
+## June 27 is day3 after stratification (start day for exp1 is 
+exp1.start.date.time<-strptime("6/24/2016/7:00","%m/%d/%Y/%H:%M") # start date time for exp1
+exp2.start.date.time<-strptime("7/1/2016/7:00","%m/%d/%Y/%H:%M") # start date time for exp2
+
+## day-night cycle (7:00 - 15:00 is day)
+# calculate hours after stratification 
+# cf. hyp.data$date.time - start.date.time gave me units="days"
+# for exp1
+hyp.data[hyp.data$exp==1,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==1,"date.time"],exp1.start.date.time,units="hours"))) # see more in ?difftime
+# for exp2
+hyp.data[hyp.data$exp==2,"after.stratification_hr"]<-
+  as.numeric(gsub(" hours","",difftime(hyp.data[hyp.data$exp==2,"date.time"],exp2.start.date.time,units="hours"))) # see more in ?difftime
+# 
+str(hyp.data)
+head(hyp.data)
+summary(hyp.data)
+
+```
+
+# calculate growth rate. how to ? exp1 and exp2 has different. And then smoothing curve as Julin did in Holtan (2011) Plant Physiol?
+```{r}
+# from Julin's scripts "TLsmoothMND MAR.R"
+calcRate <- function(x) { #no running average
+  x <- x[order(x$after.stratification_hr),] 
+  x$rate <- NA
+  for (i in 2:nrow(x)) {
+    x$rate[i] <- (x$y[i]-x$y[i-1]) / (x$after.stratification_hr[i] -x$after.stratification_hr[i-1])
+  }
+  x
+} 
+# under construction
+#names(hyp.data)<-sub("after.stratification_hr","time",names(hyp.data))
+names(hyp.data)<-sub("mm","y",names(hyp.data))
+hyp.data$sample<-with(hyp.data,paste(exp,plate,genotype,rep,sep="_")) 
+rate.list <- by(hyp.data,hyp.data$sample,calcRate) 
+tl.rates <- rate.list[[1]]              #need to recompile the list of dataframes into one dataframe.  this will hold it
+
+for (i in 2:length(rate.list)) tl.rates <- rbind(tl.rates,rate.list[[i]]) #merge into one frame
+
+# 
+tl.rates2 <- tl.rates[complete.cases(tl.rates),]  #remove rows with no data.(from J). Error in complete.cases(tl.rates) : not all arguments have the same length (Kazu)
+tl.rates3<-tl.rates[!is.na(tl.rates$rate),]
+
+
+
+```
+
+# plot data
+```{r,fig.height=11,fig.width=20}
+# plot (height version)
+p.height<-ggplot(hyp.data,aes(x=after.stratification_hr,y=y,color=as.factor(rep),shape=factor(exp))) + geom_point()+facet_grid(genotype~exp)
+p.height
+# plot (growth rate version)
+night <- seq(8,max(tl.rates$after.stratification_hr),24)
+day <- seq(24,max(tl.rates$after.stratification_hr),24)
+if (length(night)>length(day)) day <- c(day,max(tl.rates$after.stratification_hr))
+bottom <- rep(-0.02,length(night))
+top <- rep(0.11,length(night)) # for mm
+#top <- rep(1,length(night)) # for pixel
+
+#data frame to hold coordinates for nighttime rectangles
+rectangles <- data.frame(night,day,top,bottom,rate=0,after.stratification_hr=0)
+rm(night,day,top,bottom)
+# remove data not this time range, which did not solve an error in geom_smooth()
+# tl.rates4<-tl.rates3[tl.rates3$after.stratification_hr>24*5|tl.rates3$after.stratification_hr<24*12,]
+#
+#p.growthrate<- ggplot(data=tl.rates,aes(y=rate,x=after.stratification_hr))  + facet_wrap(~genotype,ncol=1) + theme_classic()
+p.growthrate<- ggplot(data=tl.rates3,aes(y=rate,x=after.stratification_hr))  + facet_grid(genotype~.)
+p.growthrate <- p.growthrate + geom_rect(data=rectangles,mapping=aes(xmin=night,xmax=day,ymin=bottom,ymax=top),fill="grey80")
+#p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200)
+p.growthrate <- p.growthrate + geom_smooth(stat="smooth",fill="grey20",method="loess",span=.1,n=200) # needs to play with span and n
+#p.growthrate <- p.growthrate + scale_x_continuous(limits=c(24*5,24*12))
+p.growthrate <- p.growthrate + theme(
+  axis.text.x=element_text(size=18),
+  #axis.ticks = element_blank(),
+  panel.background = element_rect(fill = "white")) + 
+  labs(x="Time (h)",y="growth rate (mm/hr)")
+#p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate
+ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v2.png",dpi=300,width=11,height=8) # needs to clean up graph
+# Time (h): time after stratification (hr) (cf. Nozue (2007) use "zero indicates dawn of the fourth day")
+#
+```
+
+# plot data on single facet
+```{r,fig.height=11,fig.width=20}
+
+p.growthrate<- ggplot(data=tl.rates3[grepl("gi2",tl.rates3$genotype),],aes(y=rate,x=after.stratification_hr)  )
+p.growthrate <- p.growthrate +
+  geom_rect(data=rectangles,mapping=aes(xmin=night,xmax=day,ymin=bottom,ymax=top),fill="grey80")
+p.growthrate <- p.growthrate +
+  geom_smooth(mapping=aes(color=genotype),
+              stat="smooth",
+              fill="grey20",
+              method="loess",span=.07,n=200, se = FALSE) # need to play with span and n
+p.growthrate <- p.growthrate + theme(
+  axis.text.x=element_text(size=18),
+  #axis.ticks = element_blank(),
+  panel.background = element_rect(fill = "white")) + 
+  labs(x="Time (h)",y="growth rate (mm/hr)")
+p.growthrate <- p.growthrate + xlim(72,max(tl.rates3$after.stratification_hr))
+#p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate
+ggsave(p.growthrate,file="Marian_pif3gi3_timelapse_v3.png",dpi=300,width=11,height=8) 
+```

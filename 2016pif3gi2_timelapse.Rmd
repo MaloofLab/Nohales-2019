@@ -207,7 +207,7 @@ ggsave(p.growthrate,file="Maria_pif3gi2_timelapse_v2.png",width=4,height=3)
 ```
 
 # plot data on single facet
-```{r,fig.height=11,fig.width=20}
+```{r,fig.height=4,fig.width=6}
 
 p.growthrate<- ggplot(data=tl.rates3[grepl("gi2",tl.rates3$genotype),],aes(y=rate,x=after.stratification_hr)  )
 p.growthrate <- p.growthrate +
@@ -218,12 +218,13 @@ p.growthrate <- p.growthrate +
               fill="grey20",
               method="loess",span=.1,n=200, se = FALSE) # need to play with span and n
 p.growthrate <- p.growthrate + theme(
-  axis.text.x=element_text(size=18),
-  #axis.ticks = element_blank(),
-  panel.background = element_rect(fill = "white")) + 
-  labs(x="Time (h)",y="growth rate (mm/hr)")
-p.growthrate <- p.growthrate + xlim(72,max(tl.rates3$after.stratification_hr))
+  panel.background = element_rect(fill = "white")) +
+  labs(x="Time (hr)",y="Growth rate (mm/hr)") +
+   theme(axis.title = element_text(face="bold")) +
+  theme(legend.position = "bottom", legend.title=element_blank())
+p.growthrate <- p.growthrate + coord_cartesian(xlim=c(100,max(tl.rates3$after.stratification_hr)))
 #p.growthrate <- p.growthrate + coord_cartesian(ylim=c(-0.001,0.005))
+p.growthrate <- p.growthrate + scale_color_manual(values = colors, labels = c("gi2"="gi-2", "pif3 gi2" = "gi2;pif3-1"))
 p.growthrate
-ggsave(p.growthrate,file="Maria_pif3gi3_timelapse_v3.png",dpi=300,width=11,height=8) 
+ggsave(p.growthrate,file="Maria_pif3gi2_timelapse_v3.png",dpi=300,width=6,height=4) 
 ```

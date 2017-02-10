@@ -82,12 +82,21 @@ exp6.filename.number<-gsub("(exp5000)([[:digit:]]+)(.jpg)","\\2",exp6.filename[,
 exp6.filename$frame<- as.integer(exp6.filename.number) - min(as.integer(exp6.filename.number))+1 # 
 
 # reading hypocotyl length data
+## part1
 hyp.data<-read.csv("Marian_gi2pif3_hyp_data - 2nd sets.csv")
 # need to clean up data (no duplicate)
 hyp.data$id<-paste(sub("(2016pifgi2exp)(1a_|1b_|2a_|2b_|3a_|3b_)(Col|gi2|pif4pif5|gi2pif4|gi2pif5|gi2pif4pif5)(.avi:)([[:digit:]]+)([[:print:]]+)","\\1\\2\\3\\4\\5",hyp.data$label),hyp.data$rep,sep="_")
 hyp.data[duplicated(hyp.data$id),] # should be none. If duplicated, remove duplicated data from Google Sheet
 
+# part2 (data exceeded limit of Google sheet)
+hyp.data.part2<-read.csv("Marian_gi2pif3_hyp_data - 2nd sets_part2.csv")
+# need to clean up data (no duplicate)
+hyp.data.part2$id<-paste(sub("(2016pifgi2exp)(1a_|1b_|2a_|2b_|3a_|3b_)(Col|gi2|pif4pif5|gi2pif4|gi2pif5|gi2pif4pif5)(.avi:)([[:digit:]]+)([[:print:]]+)","\\1\\2\\3\\4\\5",hyp.data.part2$label),hyp.data.part2$rep,sep="_")
+hyp.data.part2[duplicated(hyp.data.part2$id),] # should be none. If duplicated, remove duplicated data from Google Sheet
+
 ####### data cleaning on going #########
+# combine part1 and part2
+hyp.data<-rbind(hyp.data,hyp.data.part2)
 ftable(hyp.data[,c("exp","plate","genotype","rep")],col.vars=c("plate","rep"),row.vars=c("genotype","exp"))
 
 # change pixel into mm

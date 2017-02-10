@@ -14,6 +14,7 @@ output: html_document
 ### prerequisite
 ```{r}
 library(ggplot2)
+library(dplyr)
 # functions used in this script
 ## vlookup
 #Vlookup in R (https://gist.github.com/jnmaloof/7367450)
@@ -134,8 +135,7 @@ calcRate <- function(x) { #no running average
   }
   x
 } 
-# under construction
-#names(hyp.data)<-sub("after.stratification_hr","time",names(hyp.data))
+
 names(hyp.data)<-sub("mm","y",names(hyp.data))
 hyp.data$sample<-with(hyp.data,paste(exp,plate,genotype,rep,sep="_")) 
 rate.list <- by(hyp.data,hyp.data$sample,calcRate) 
@@ -143,13 +143,19 @@ tl.rates <- rate.list[[1]]              #need to recompile the list of dataframe
 
 for (i in 2:length(rate.list)) tl.rates <- rbind(tl.rates,rate.list[[i]]) #merge into one frame
 
-# 
-tl.rates2 <- tl.rates[complete.cases(tl.rates),]  #remove rows with no data.(from J). Error in complete.cases(tl.rates) : not all arguments have the same length (Kazu)
 tl.rates3<-tl.rates[!is.na(tl.rates$rate),]
-
-
-
 ```
+
+## Calculate sample size
+```{r}
+samples <- unique(hyp.data$sample)
+genotypes <- as.character(unique(hyp.data$genotype))
+sample.numbers <- sapply(genotypes,function(g) {
+  sum(grepl(g,samples))
+})
+sample.numbers
+```
+
 
 # plot data
 ```{r,fig.height=11,fig.width=20}
